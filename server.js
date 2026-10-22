@@ -22,8 +22,61 @@ const sessions = new Map();
 const submissionRates = new Map();
 const loginRates = new Map();
 
-for (const dir of [UPLOAD_DIR, DATA_DIR]) fs.mkdirSync(dir, { recursive: true });
-if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, '[]\n', 'utf8');
+// Optional cloud storage (Cloudinary). When CLOUDINARY_URL is set, files AND their metadata live on Cloudinary,
+// so nothing is lost when the host's disk is wiped (e.g. free hosting tiers). Otherwise local disk is used.
+const CLOUD = (() => {
+  const m = /^cloudinary:\/\/([^:]+):([^@]+)@(.+)$/.exec(String(process.env.CLOUDINARY_URL || '').trim());
+  return m ? { key: m[1], secret: m[2], name: m[3] } : null;
+})();
+const CLOUD_FOLDER = 'neferdidi';
+const cloudApi = (p) => `https://api.cloudinary.com/v1_1/${CLOUD.name}/${p}`;
+const cloudAuth = () => `Basic ${Buffer.from(`${CLOUD.key}:${CLOUD.secret}`).toString('base64')}`;
+const escCtx = (v) => String(v ?? '').replace(/[=|\\]/g, c => `\\${c}`).replace(/[\r\n]+/g, ' ');
+function cloudSign(params) {
+  const base = Object.keys(params).sort().map(k => `${k}=${params[k]}`).join('&');
+  return crypto.createHash('sha1').update(base + CLOUD.secret).digest('hex');
+}
+async function cloudUpload(id, file, meta) {
+  const resourceType = file.mimeType.startsWith('video/') ? 'video' : 'image';
+  const params = { context: Object.entries(meta).map(([k, v]) => `${k}=${escCtx(v)}`).join('|'), folder: CLOUD_FOLDER, public_id: id, timestamp: Math.floor(Date.now() / 1000) };
+  const form = new FormData();
+  for (const [k, v] of Object.entries(params)) form.append(k, String(v));
+  form.append('api_key', CLOUD.key); form.append('signature', cloudSign(params));
+  form.append('file', new Blob([file.data], { type: file.mimeType }), 'upload');
+  const r = await fetch(cloudApi(`${resourceType}/upload`), { method: 'POST', body: form });
+  if (!r.ok) throw new Error(`Cloudinary upload failed: ${r.status} ${(await r.text()).slice(0, 200)}`);
+  return r.json();
+}
+async function cloudList() {
+  const out = [];
+  for (const rt of ['image', 'video']) {
+    let cursor = '';
+    do {
+      const qs = new URLSearchParams({ prefix: `${CLOUD_FOLDER}/`, context: 'true', max_results: '500' }); if (cursor) qs.set('next_cursor', cursor);
+      const r = await fetch(`${cloudApi(`resources/${rt}/upload`)}?${qs}`, { headers: { Authorization: cloudAuth() } });
+      if (!r.ok) throw new Error(`Cloudinary list failed: ${r.status}`);
+      const data = await r.json();
+      for (const x of data.resources || []) {
+        const c = (x.context && x.context.custom) || {};
+        out.push({ id: x.public_id.slice(CLOUD_FOLDER.length + 1), name: c.name || '', branch: c.branch || '', note: c.note || '',
+          fileType: c.type || `${rt}/*`, fileSize: x.bytes, originalName: c.orig || '', createdAt: c.at || x.created_at,
+          consentSubmit: c.cs === '1', consentMarketing: c.cm === '1', url: x.secure_url, resourceType: rt, publicId: x.public_id });
+      }
+      cursor = data.next_cursor || '';
+    } while (cursor);
+  }
+  return out.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+}
+async function cloudDelete(item) {
+  const qs = new URLSearchParams(); qs.append('public_ids[]', item.publicId);
+  const r = await fetch(`${cloudApi(`resources/${item.resourceType}/upload`)}?${qs}`, { method: 'DELETE', headers: { Authorization: cloudAuth() } });
+  if (!r.ok) throw new Error(`Cloudinary delete failed: ${r.status}`);
+}
+
+if (!CLOUD) {
+  for (const dir of [UPLOAD_DIR, DATA_DIR]) fs.mkdirSync(dir, { recursive: true });
+  if (!fs.existsSync(DB_FILE)) fs.writeFileSync(DB_FILE, '[]\n', 'utf8');
+}
 if (ADMIN_PASSWORD === 'ChangeMe-2026-OnlyLocal') {
   console.warn('\n[SECURITY] ADMIN_PASSWORD is using the local demo password. Set a unique ADMIN_PASSWORD before exposing this site publicly.\n');
 }
@@ -232,10 +285,15 @@ async function handle(req, res) {
       if (!name) return json(res, 400, { error: 'اكتب اسمك علشان نكمل.' });
       if (!consentSubmit) return json(res, 400, { error: 'الموافقة على إرسال المشاركة مطلوبة.' });
       const id = crypto.randomUUID(); const storedName = `${id}${extensions[file.mimeType]}`;
+      const now = new Date().toISOString();
+      const originalName = path.basename(file.originalName || 'neferdidi-moment').replace(/[\r\n\u0000]/g, '_').slice(0, 180);
+      if (CLOUD) {
+        await cloudUpload(id, file, { name, branch, note, type: file.mimeType, orig: originalName, at: now, cs: consentSubmit ? '1' : '0', cm: consentMarketing ? '1' : '0' });
+        return json(res, 201, { ok: true, id, message: 'تم استلام مشاركتك بنجاح.' });
+      }
       uploadedPath = path.join(UPLOAD_DIR, storedName);
       await fsp.writeFile(uploadedPath, file.data, { flag: 'wx', mode: 0o600 });
-      const now = new Date().toISOString(); const items = await readSubmissions();
-      const originalName = path.basename(file.originalName || 'neferdidi-moment').replace(/[\r\n\u0000]/g, '_').slice(0, 180);
+      const items = await readSubmissions();
       items.unshift({ id, name, branch, note, fileType: file.mimeType, fileSize: file.data.length, originalName, storedName,
         createdAt: now, consentSubmit, consentMarketing, consentSubmitAt: now, consentMarketingAt: consentMarketing ? now : null });
       await writeSubmissions(items);
@@ -267,7 +325,7 @@ async function handle(req, res) {
     if (req.method === 'GET' && pathname === '/api/admin/me') return json(res, 200, { ok: true });
     if (req.method === 'GET' && pathname === '/api/admin/submissions') {
       try {
-        const items = await readSubmissions(); const q = cleanText(url.searchParams.get('q') || '', 80).toLocaleLowerCase();
+        const items = CLOUD ? await cloudList() : await readSubmissions(); const q = cleanText(url.searchParams.get('q') || '', 80).toLocaleLowerCase();
         const consentValue = url.searchParams.get('consent'); const consent = consentValue === 'yes' ? true : consentValue === 'no' ? false : null;
         const filtered = items.filter(item => {
           const matchesText = !q || [item.name, item.branch, item.note, item.originalName].some(value => String(value || '').toLocaleLowerCase().includes(q));
@@ -279,8 +337,12 @@ async function handle(req, res) {
     const mediaMatch = /^\/api\/admin\/submissions\/([^/]+)\/(media|download)$/.exec(pathname);
     if (req.method === 'GET' && mediaMatch) {
       try {
-        const id = decodeURIComponent(mediaMatch[1]); const items = await readSubmissions(); const item = items.find(entry => entry.id === id);
+        const id = decodeURIComponent(mediaMatch[1]); const items = CLOUD ? await cloudList() : await readSubmissions(); const item = items.find(entry => entry.id === id);
         if (!item) return json(res, 404, { error: 'المشاركة مش موجودة.' });
+        if (CLOUD) {
+          const target = mediaMatch[2] === 'download' ? item.url.replace('/upload/', '/upload/fl_attachment/') : item.url;
+          res.writeHead(302, { Location: target, 'Cache-Control': 'private, no-store' }); return res.end();
+        }
         const fileName = path.basename(item.storedName || ''); const mediaPath = path.join(UPLOAD_DIR, fileName);
         return sendProtectedMedia(req, res, mediaPath, item.fileType, mediaMatch[2] === 'download' ? item.originalName : fileName);
       } catch (err) { return json(res, 500, { error: err.message }); }
@@ -288,12 +350,18 @@ async function handle(req, res) {
     const deleteMatch = /^\/api\/admin\/submissions\/([^/]+)$/.exec(pathname);
     if (req.method === 'DELETE' && deleteMatch) {
       try {
-        const id = decodeURIComponent(deleteMatch[1]); const items = await readSubmissions(); const index = items.findIndex(item => item.id === id);
+        const id = decodeURIComponent(deleteMatch[1]);
+        if (CLOUD) {
+          const item = (await cloudList()).find(entry => entry.id === id);
+          if (!item) return json(res, 404, { error: 'المشاركة مش موجودة.' });
+          await cloudDelete(item); return json(res, 200, { ok: true });
+        }
+        const items = await readSubmissions(); const index = items.findIndex(item => item.id === id);
         if (index < 0) return json(res, 404, { error: 'المشاركة مش موجودة.' });
         const [item] = items.splice(index, 1); await writeSubmissions(items);
         await fsp.unlink(path.join(UPLOAD_DIR, path.basename(item.storedName || ''))).catch(err => { if (err.code !== 'ENOENT') throw err; });
         return json(res, 200, { ok: true });
-      } catch { return json(res, 500, { error: 'تعذر حذف المشاركة.' }); }
+      } catch (err) { console.error('Delete error:', err.message); return json(res, 500, { error: 'تعذر حذف المشاركة.' }); }
     }
     return json(res, 404, { error: 'المسار المطلوب مش موجود.' });
   }
@@ -313,6 +381,7 @@ server.listen(PORT, () => {
   console.log(`Neferdidi Anniversary is running at http://localhost:${PORT}`);
   console.log(`Admin dashboard: http://localhost:${PORT}/admin`);
   console.log(`Upload limit: ${MAX_UPLOAD_MB} MB`);
+  console.log(`Storage: ${CLOUD ? 'Cloudinary (' + CLOUD.name + ')' : 'local disk'}`);
 });
 
 // Periodically discard expired auth and rate-limit entries.
