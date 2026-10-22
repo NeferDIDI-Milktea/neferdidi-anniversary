@@ -1,0 +1,9 @@
+{
+  "name": "neferdidi-two-years",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Neferdidi second anniversary interactive camera and customer moments website",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "dev": "node --watch server.js" },
+  "engines": { "node": ">=18" }
+}

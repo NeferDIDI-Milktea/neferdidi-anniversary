@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#102b2b">
+  <meta name="description" content="احتفل مع Neferdidi بمرور سنتين، وسجّل لحظتك وشاركها معانا.">
+  <title>سنتين من الحكايات | Neferdidi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="intro" id="intro" aria-label="مقدمة احتفالية">
+    <div class="intro-orbit orbit-one"></div><div class="intro-orbit orbit-two"></div>
+    <div class="intro-spark spark-a">✦</div><div class="intro-spark spark-b">✧</div><div class="intro-spark spark-c">✦</div>
+    <div class="intro-content">
+      <div class="brand-lockup intro-logo"><span class="brand-mark">N</span><span>NEFERDIDI</span></div>
+      <div class="anniversary-number">02<span>YEARS</span></div>
+      <p class="intro-kicker">TWO YEARS. THOUSANDS OF MOMENTS.</p>
+      <h1>حكايتنا كبرت<br><em>بيكم</em></h1>
+      <p class="intro-sub">كل لحظة معاكم تستاهل تفضل فاكرة.</p>
+      <button class="button button-gold intro-enter" id="enterExperience">ادخل الاحتفال <span aria-hidden="true">←</span></button>
+      <button class="skip-intro" id="skipIntro">تخطي المقدمة</button>
+    </div>
+    <div class="intro-bottom">A MOMENT WORTH KEEPING</div>
+  </div>
+
+  <header class="site-header" id="top">
+    <a class="brand-lockup" href="#top" aria-label="Neferdidi home"><span class="brand-mark">N</span><span>NEFERDIDI</span></a>
+    <a href="#capture" class="header-link">سجّل لحظتك <span aria-hidden="true">↗</span></a>
+  </header>
+
+  <main>
+    <section class="hero section-wrap">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> الذكرى السنوية الثانية</p>
+        <h2>سنتين من الحكايات،<br><em>ولسه البداية.</em></h2>
+        <p class="hero-description">من أول رشفة لأول ذكرى، إنتوا كنتوا جزء من حكايتنا. دلوقتي جه دوركم تحكولنا عن لحظتكم.</p>
+        <a class="button button-gold" href="#capture">خلّي لحظتك جزء من الحكاية <span aria-hidden="true">←</span></a>
+        <div class="hero-footnote"><span class="tiny-star">✦</span> صوّر صورة أو فيديو قصير وشاركنا الذكرى.</div>
+      </div>
+      <div class="hero-art" aria-label="تصميم احتفالي بالذكرى السنوية">
+        <div class="art-halo"></div><div class="art-ring art-ring-a"></div><div class="art-ring art-ring-b"></div>
+        <div class="art-star star-one">✦</div><div class="art-star star-two">✧</div><div class="art-star star-three">✦</div>
+        <div class="art-year">02</div>
+        <div class="art-label"><span>NEFERDIDI</span><b>ANNIVERSARY EDITION</b></div>
+        <div class="art-orb"><div class="orb-inner">N</div></div>
+        <div class="art-ribbon">TWO YEARS TOGETHER</div>
+      </div>
+    </section>
+
+    <section class="memory-strip" aria-label="رسالة الاحتفال">
+      <span>YOUR MOMENT</span><i>✦</i><span>YOUR STORY</span><i>✦</i><span>OUR NEFERDIDI</span><i>✦</i><span>YOUR MOMENT</span>
+    </section>
+
+    <section class="capture-section section-wrap" id="capture">
+      <div class="section-heading">
+        <p class="eyebrow"><span></span> خلّي اللحظة تعيش</p>
+        <h2>مستعدين نوثّق <em>لحظتك؟</em></h2>
+        <p>اختار كاميرا جهازك أو ارفع صورة وفيديو من المعرض. راجع مشاركتك، وبعدها ابعتهالنا في خطوة واحدة.</p>
+      </div>
+
+      <div class="capture-grid">
+        <div class="capture-panel">
+          <div class="panel-topline"><span class="live-dot"></span><span id="cameraStatus">الكاميرا جاهزة لما تكون إنت جاهز</span><span class="privacy-chip"><span>✦</span> لحظتك بأمان</span></div>
+          <div class="camera-stage" id="cameraStage">
+            <video id="cameraVideo" autoplay muted playsinline hidden></video>
+            <img id="previewImage" alt="معاينة الصورة المختارة" hidden>
+            <video id="previewVideo" controls playsinline hidden></video>
+            <div class="camera-placeholder" id="cameraPlaceholder">
+              <div class="viewfinder"><span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span><div class="viewfinder-mark">N</div></div>
+              <p class="placeholder-title">لحظتك تستاهل تتسجل</p>
+              <p class="placeholder-sub">ابدأ الكاميرا أو اختار ملف من جهازك</p>
+            </div>
+            <div class="camera-badge" id="recordingBadge" hidden><span class="record-dot"></span> REC <span id="recordTimer">00:00</span></div>
+          </div>
+          <div class="camera-tools">
+            <div class="mode-switch" role="group" aria-label="اختيار نوع التسجيل">
+              <button type="button" class="mode-button active" data-mode="video" aria-pressed="true"><span>▣</span> فيديو</button>
+              <button type="button" class="mode-button" data-mode="photo" aria-pressed="false"><span>◎</span> صورة</button>
+            </div>
+            <div class="camera-actions">
+              <button class="icon-button" id="switchCamera" type="button" title="تبديل الكاميرا" aria-label="تبديل الكاميرا">⇄</button>
+              <button class="record-button" id="mainCameraAction" type="button"><span class="record-button-icon"></span><b id="cameraActionLabel">ابدأ التسجيل</b></button>
+              <button class="icon-button" id="clearMedia" type="button" title="إعادة" aria-label="إزالة الوسائط المختارة">↺</button>
+            </div>
+            <div class="secondary-actions">
+              <button type="button" class="text-button" id="startCamera">تشغيل الكاميرا <span>↗</span></button>
+              <label for="fileInput" class="text-button upload-trigger">رفع من المعرض <span>↑</span></label>
+              <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" hidden>
+            </div>
+            <p class="file-note">الفيديو بحد أقصى 30 ثانية، وحجم الملف حتى 100 ميجابايت.</p>
+          </div>
+        </div>
+
+        <div class="share-panel">
+          <div class="share-heading"><span class="share-step">02 / SHARE</span><h3>خلّينا نعرفك</h3><p>كام تفصيلة صغيرة علشان نحتفظ بذكراك صح.</p></div>
+          <form id="submissionForm">
+            <label class="field-label" for="customerName">اسمك <span>*</span></label>
+            <input id="customerName" name="name" type="text" maxlength="80" placeholder="اكتب اسمك" autocomplete="name" required>
+            <label class="field-label" for="branch">أنهي فرع زرت؟</label>
+            <select id="branch" name="branch">
+              <option value="">اختار الفرع (اختياري)</option>
+              <option>Almaza Park</option><option>Sol App</option><option>فرع آخر</option><option>لسه مجربتش الفرع</option>
+            </select>
+            <label class="field-label" for="momentNote">احكيلنا عن اللحظة <span class="optional">اختياري</span></label>
+            <textarea id="momentNote" name="note" rows="3" maxlength="300" placeholder="إيه أكتر حاجة بتحبها في Neferdidi؟"></textarea>
+            <label class="consent-row"><input id="consentSubmit" type="checkbox" required><span>أوافق على إرسال الصورة أو الفيديو لفريق Neferdidi للاطلاع عليه والتواصل بخصوص المشاركة. <b>*</b></span></label>
+            <label class="consent-row optional-consent"><input id="consentMarketing" type="checkbox"><span>أوافق بشكل اختياري على استخدام مشاركتي في محتوى Neferdidi على السوشيال ميديا أو المواد التسويقية.</span></label>
+            <p class="consent-note">موافقتك على الإرسال لا تعني موافقتك على النشر. مش هنستخدم مشاركتك تسويقيًا إلا لو وافقت على الاختيار المنفصل.</p>
+            <button class="button button-dark submit-button" type="submit" id="submitButton" disabled>ابعت لحظتي <span aria-hidden="true">←</span></button>
+            <p class="form-status" id="formStatus" role="status" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="closing-section">
+      <div class="closing-emblem">N</div>
+      <p class="eyebrow">TWO YEARS TOGETHER</p>
+      <h2>الحكاية مكملة <em>بيكم.</em></h2>
+      <p>شكرًا إنكم كنتوا جزء من أول سنتين. مستنيين نشوف لحظاتكم.</p>
+      <a href="#capture" class="button button-outline">سجّل لحظتك تاني <span>↑</span></a>
+    </section>
+  </main>
+
+  <footer class="site-footer"><a class="brand-lockup" href="#top"><span class="brand-mark">N</span><span>NEFERDIDI</span></a><span>MADE OF MOMENTS · 2026</span><a href="/admin" class="footer-admin">فريق البراند</a></footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
